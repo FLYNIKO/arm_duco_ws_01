@@ -213,9 +213,9 @@ class system_control:
                     self.duco_stop.switch_mode(1)          
             self._stop_event.wait(0.05)
 
-    def ob_cross_check(self, direction):
+    def ob_cross_check(self, direction, delay):
         # 停车停喷
-        self.car_state = [2, 2] 
+        
         self.duco_ob.stop(True)
         self.ob_flag = True
         ob_data = self.get_obstacle_status()
@@ -228,6 +228,8 @@ class system_control:
         count = 0
         # 安全位
         self.duco_ob.movel([self.safe_pos[0], origin_pos[1], origin_pos[2], origin_pos[3], origin_pos[4], origin_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
+        self.duco_ob.movel([self.safe_pos[0], origin_pos[1], origin_pos[2]-0.2, origin_pos[3], origin_pos[4], origin_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
+        self.car_state = [2, 2] 
         self.duco_ob.movel(self.safe_pos, self.ob_vel, self.ob_acc, 0, '', '', '', True)
         rospy.loginfo("cross===  safe pos done")
         # 初始化突变检测相关变量
@@ -250,7 +252,7 @@ class system_control:
                     
             if jump_count >= 2:
                 rospy.loginfo("检测到第二次突变，退出循环")
-                rospy.sleep(1.7)
+                rospy.sleep(delay)
                 self.car_state = [2, 2]  # 车辆停车，喷涂机停喷
                 self.running_state = 821
                 self.ob_sidemotive_flag = False
@@ -323,14 +325,14 @@ class system_control:
                                 ob_data = self.get_obstacle_status()
                                 
                                 self.ob_sidemotive_flag = True
-                                self.car_state = [2, 2] # 停车停喷
+                                self.car_state = [2, 8] # 停车继续喷
                                 self.running_state = 820
                                 start_time = time.time()
                                 tcp_pos = self.duco_ob.get_tcp_pose()
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] - 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 
                                 if ob_data['left_mid'] and ob_data['left_rear'] and self.car_direction == 0:
-                                    self.ob_cross_check("right")
+                                    self.ob_cross_check("right", 4)
 
                                 elif ob_data['left_mid'] and self.car_direction == 0:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
@@ -363,14 +365,14 @@ class system_control:
                                 ob_data = self.get_obstacle_status()
                                 
                                 self.ob_sidemotive_flag = True
-                                self.car_state = [2, 2] # 停车停喷
+                                self.car_state = [2, 8] # 停车停喷
                                 self.running_state = 820
                                 start_time = time.time()
                                 tcp_pos = self.duco_ob.get_tcp_pose()
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] + 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 
                                 if ob_data['right_mid'] and ob_data['right_rear'] and self.car_direction == 1:
-                                    self.ob_cross_check("left")
+                                    self.ob_cross_check("left", 5.2)
 
                                 elif ob_data['right_mid'] and self.car_direction == 1:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
@@ -703,7 +705,8 @@ class system_control:
         Returns:
             list: 包含车辆状态信息的列表
         """
-        return self.car_state, self.running_state, [self.get_distance("left", "front"), self.get_distance("right", "front"), self.get_distance("left", "up"), 0], self.spray_swinging
+        distances = [self.get_distance("left", "front"), self.get_distance("right", "front"), self.get_distance("left", "up"), self.get_distance("left", "down")]
+        return self.car_state, self.running_state, distances, self.spray_swinging
         
         # 读取/topic中的按键输入
     def _keys_callback(self, msg):
@@ -1103,7 +1106,7 @@ class system_control:
         #上翼板
         self.spray_swinging_low = self.compute_spray_swinging_angle([self.paint_low[0], self.paint_low[2]], flange_top_front, [web_top_x, web_top_z])
         #中心点
-        self.spray_swinging_center = self.compute_spray_swinging_angle([self.paint_center[0], self.paint_center[2]], [web_top_x, web_top_z], [web_bottom_x, web_bottom_z])
+        self.spray_swinging_center = self.compute_spray_swinging_angle([self.paint_center[0], self.paint_center[2]], flange_top_front, flange_bottom_front)
 
         self.spray_swinging = self.spray_swinging_top + self.spray_swinging_low + self.spray_swinging_center + self.spray_swinging_high + self.spray_swinging_bottom
         rospy.loginfo("------ |-| 已找到5个喷涂位姿，选择位置开始喷涂！--------\n")
@@ -1182,57 +1185,58 @@ class system_control:
                 # 喷涂上下翼板
                 if self.paint_motion == 2 or self.paint_motion == 4:
                     target_dist = self.painting_dist
-                    now_dist =(self.get_directional_distance("left") + self.get_directional_distance("right")) / 2
-                    if abs(self.get_directional_distance("left") - self.get_directional_distance("right")) > 0.1:
-                        v2 = 0.0
-                    else:
-                        v2 = self.pid_dist_control(now_dist, target_dist, dt)
-                    if not self.ob_flag and abs(target_dist - now_dist) < 0.05:
+                    if self.car_direction == 0:
+                        now_dist = self.get_directional_distance("left")
+                    elif self.car_direction == 1:
+                        now_dist = self.get_directional_distance("right")
+                    v2 = self.pid_dist_control(now_dist, target_dist, dt)
+                    if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷
                         
-                    rospy.loginfo(f"v2: {v2}\ntarget_dist_in_flange: {self.target_dist_in_flange}, \ndistance_now: {now_dist}")
+                    rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
 
                 # 喷涂上下表面
                 elif self.paint_motion == 1 or self.paint_motion == 5:
                     target_dist = self.painting_dist
                     now_dist = self.surface_distance
                     v2 = self.pid_dist_control(now_dist, target_dist, dt)
-                    if not self.ob_flag and abs(target_dist - now_dist) < 0.05:
+                    if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷
                         
-                    rospy.loginfo(f"v2: {v2}\ntarget_dist_in_surface: {self.target_dist_in_surface}, \ndistance_now: {now_dist}")
+                    rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
                 
                 # 喷涂中腹板
                 elif self.paint_motion == 3:
                     target_dist = self.target_dist_in_web
-                    now_dist = (self.get_directional_distance("left") + self.get_directional_distance("right")) / 2
-                    if abs(self.get_directional_distance("left") - self.get_directional_distance("right")) > 0.1:
-                        v2 = 0.0
-                    else:
-                        v2 = self.pid_dist_control(now_dist, target_dist, dt)  
-                    if not self.ob_flag and abs(target_dist - now_dist) < 0.05:
+                    if self.car_direction == 0:
+                        now_dist = self.get_directional_distance("left")
+                    elif self.car_direction == 1:
+                        now_dist = self.get_directional_distance("right")
+                    v2 = self.pid_dist_control(now_dist, target_dist, dt)  
+                    if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷   
                         
-                    rospy.loginfo(f"v2: {v2}\ntarget_dist_web: {self.target_dist_in_web}, \ndistance_now: {now_dist}")
+                    rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
                 
                 # 喷涂自定义点位
                 elif self.paint_motion == 6:
                     target_dist = self.painting_dist
-                    now_dist = (self.get_directional_distance("left") + self.get_directional_distance("right")) / 2
+                    if self.car_direction == 0:
+                        now_dist = self.get_directional_distance("left")
+                    elif self.car_direction == 1:
+                        now_dist = self.get_directional_distance("right")
+
                     if now_dist != -1 or now_dist <= target_dist * 2:
                         pass
                     elif self.surface_distance != -1:
                         now_dist = self.surface_distance
                     else:
                         now_dist = -1
-                    if abs(self.get_directional_distance("left") - self.get_directional_distance("right")) > 0.1:
-                        v2 = 0.0
-                    else:
-                        v2 = self.pid_dist_control(now_dist, target_dist, dt)  
+                    v2 = self.pid_dist_control(now_dist, target_dist, dt)  
                     if not self.ob_flag and abs(target_dist - now_dist) < 0.05:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷   
                         
-                    rospy.loginfo(f"v2: {v2}\ntarget_dist_web: {self.painting_dist}, \ndistance_now: {now_dist}")
+                    rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
 
                 else:
                     v2 = 0.0

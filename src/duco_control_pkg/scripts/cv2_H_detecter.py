@@ -17,7 +17,7 @@ class StableRadarLineDetector:
     def __init__(self):
         rospy.init_node('stable_radar_line_detector')
         # 302行修改
-        self.debug_mode = True
+        self.debug_mode = DEBUG_MODE
         # Parameters for image conversion
         self.image_size = 800
         self.max_range = 1.0
@@ -1009,7 +1009,8 @@ class StableRadarLineDetector:
                 
                 # 简单暴力合并相似线段
                 merged_lines = self.simple_merge_similar_lines(current_lines)
-                print(f"After simple merging: {len(merged_lines)} lines")
+                if self.debug_mode:
+                    print(f"After simple merging: {len(merged_lines)} lines")
                 
                 # Detect H-beam structures using merged lines
                 h_beams, standalone_flanges, standalone_webs = self.detect_h_beam_structures(merged_lines)
@@ -1024,20 +1025,21 @@ class StableRadarLineDetector:
                 
                 # 如果稳定检测没有结果，使用当前帧的检测结果
                 if len(stable_h_beams) == 0 and len(h_beams) > 0:
-                    print("使用当前帧检测结果作为备选")
+                    if self.debug_mode:
+                        print("使用当前帧检测结果作为备选")
                     stable_h_beams = h_beams
                     stable_standalone = standalone_flanges
                 
                 # Publish results
                 self.publish_scan_points(scan_msg)
                 self.publish_h_beam_markers(stable_h_beams, stable_standalone)
-                if self.debug_mode:
-                    self.save_debug_images(occupancy_img, edges, merged_lines)
+                self.save_debug_images(occupancy_img, edges, merged_lines)
 
                 self.publish_debug_line_info(stable_h_beams)
 
             else:
-                print("No lines detected")
+                if self.debug_mode:
+                    print("No lines detected")
                 self.publish_scan_points(scan_msg)
             
         except Exception as e:
@@ -1069,9 +1071,9 @@ class StableRadarLineDetector:
         cv2.circle(occupancy_vis, (center, center), self.processing_radius_pixels, (0, 255, 0), 2)
         
         # 显示多个窗口以便调试
-        cv2.imshow("Occupancy Image (with range)", occupancy_vis)
+        cv2.imshow("|-| (with range)", occupancy_vis)
         # cv2.imshow("Edge Detection", edges_vis)
-        cv2.imshow("Detected Lines", vis_img)
+        cv2.imshow("|-|", vis_img)
         cv2.waitKey(1)
         
         # 可选：保存调试图像

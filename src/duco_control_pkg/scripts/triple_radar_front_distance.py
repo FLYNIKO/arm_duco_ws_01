@@ -18,7 +18,7 @@ class TripleRadarFrontDistance:
         self.topic_name = topic_name
         self.radars = {
             'left': {
-                'topic': '/left_radar/filtered_scan',
+                'topic': '/left_radar/scan',
                 'latest_scan': None,
                 'last_scan_time': 0,
                 'distances': {
@@ -28,7 +28,7 @@ class TripleRadarFrontDistance:
                 }
             },
             'right': {
-                'topic': '/right_radar/filtered_scan',
+                'topic': '/right_radar/scan',
                 'latest_scan': None,
                 'last_scan_time': 0,
                 'distances': {
@@ -38,7 +38,7 @@ class TripleRadarFrontDistance:
                 }
             },
             'main': {
-                'topic': '/main_radar/filtered_scan',
+                'topic': '/main_radar/scan',
                 'latest_scan': None,
                 'last_scan_time': 0,
                 'distances': {
