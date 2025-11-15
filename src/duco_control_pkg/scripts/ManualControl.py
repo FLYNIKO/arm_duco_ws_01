@@ -1198,7 +1198,12 @@ class system_control:
                 # 喷涂上下表面
                 elif self.paint_motion == 1 or self.paint_motion == 5:
                     target_dist = self.painting_dist
-                    now_dist = self.surface_distance
+                    if self.car_direction == 0 and self.get_directional_distance("left") < target_dist * 0.9:
+                        now_dist = self.get_directional_distance("left")
+                    elif self.car_direction == 1 and self.get_directional_distance("right") < target_dist * 0.9:
+                        now_dist = self.get_directional_distance("right")
+                    else:
+                        now_dist = self.surface_distance
                     v2 = self.pid_dist_control(now_dist, target_dist, dt)
                     if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷
@@ -1211,7 +1216,7 @@ class system_control:
                     if self.car_direction == 0:
                         now_dist = self.get_directional_distance("left")
                     elif self.car_direction == 1:
-                        now_dist = self.get_directional_distance("right")
+                        now_dist = (self.get_directional_distance("right") + self.get_directional_distance("left")) / 2
                     v2 = self.pid_dist_control(now_dist, target_dist, dt)  
                     if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8] # 车辆开车，喷涂机开喷   
