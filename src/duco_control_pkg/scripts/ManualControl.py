@@ -1106,7 +1106,11 @@ class system_control:
                 elif self.paint_motion == 1 or self.paint_motion == 5:
                     target_dist = self.painting_dist
                     now_dist = self.surface_distance
-                    v2 = self.pid_dist_control(now_dist, target_dist, dt)
+                    now_angle = self.surface_angle_deg
+                    if now_angle > 95 or now_angle < 85:
+                        v2 = 0
+                    else:
+                        v2 = self.pid_dist_control(now_dist, target_dist, dt)
                     if not self.ob_flag and abs(target_dist - now_dist) < 0.1:
                         self.car_state = [8, 8]
                         
