@@ -65,6 +65,7 @@ class system_control:
         self.duco_cobot = duco_cobot
         self.app = app
         self.auto_vel = AUTOSPEED # 自动喷涂速度
+        self.car_speed = 0.1 # 小车行进速度
         self.vel = DEFAULT_VEL # 机械臂手动末端速度
         self.ob_vel = OB_VELOCITY # 障碍物避障速度
         self.ob_acc = OB_ACC # 障碍物避障加速度
@@ -234,6 +235,8 @@ class system_control:
         rospy.loginfo("ob_cross  移动到安全位置")
         # 初始化突变检测相关变量
         prev_distance = self.get_distance(direction, "up")
+        if prev_distance >= 2:
+            prev_distance = 2.0
         jump_count = 0
         # 开车停喷
         self.car_state = [8, 2] 
@@ -261,7 +264,7 @@ class system_control:
             if current_distance > 0:
                 prev_distance = current_distance
             # 等待0.1秒
-            rospy.sleep(0.1)
+            rospy.sleep(0.5)
         # 恢复点位
         rospy.loginfo("ob_cross  移动到恢复点位")
         self.duco_ob.movel([self.init_pos[0], origin_pos[1], origin_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
@@ -322,6 +325,7 @@ class system_control:
                         if self.paint_motion == 1 or self.paint_motion == 5 or self.paint_motion == 2 or self.paint_motion == 4 or self.paint_motion == 3 or self.paint_motion == 6:
 
                             if (ob_data['left_mid'] or ob_data['left_rear']) and self.car_direction == 0:
+                                pause_time = 0.4 / self.car_speed
                                 self.duco_ob.stop(True)
                                 self.ob_flag = True
                                 ob_data = self.get_obstacle_status()
@@ -334,7 +338,7 @@ class system_control:
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] - 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 
                                 if ob_data['left_mid'] and ob_data['left_rear'] and self.car_direction == 0:
-                                    self.ob_cross_check("right", 4)
+                                    self.ob_cross_check("right", pause_time)
 
                                 elif ob_data['left_mid'] and self.car_direction == 0:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
@@ -362,6 +366,7 @@ class system_control:
                                     self.running_state = 800
                         
                             if (ob_data['right_mid'] or ob_data['right_rear']) and self.car_direction == 1:
+                                pause_time = 0.5 / self.car_speed
                                 self.duco_ob.stop(True)
                                 self.ob_flag = True
                                 ob_data = self.get_obstacle_status()
@@ -374,7 +379,7 @@ class system_control:
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] + 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 
                                 if ob_data['right_mid'] and ob_data['right_rear'] and self.car_direction == 1:
-                                    self.ob_cross_check("left", 5.2)
+                                    self.ob_cross_check("left", pause_time)
 
                                 elif ob_data['right_mid'] and self.car_direction == 1:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
@@ -727,6 +732,7 @@ class system_control:
             self.painting_deg_flange = abs(self.latest_keys[8])
             self.painting_dist = self.latest_keys[9]/1000
             self.car_direction = self.latest_keys[10]
+            self.car_speed = self.latest_keys[14] / 100
 
         # 按位解析
         return KeyInputStruct(

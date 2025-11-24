@@ -71,7 +71,7 @@ class StableRadarLineDetector:
         self.debug_pub = rospy.Publisher('/debug_Hs', MarkerArray, queue_size=10)
         self.line_info_pub = rospy.Publisher('/left_radar/H_detection_info', LineDetectionArray, queue_size=10)
         # 发布过滤后的点坐标数组（x,y,x,y...格式）
-        self.filtered_points_pub = rospy.Publisher('/Duco_adjust', Float64MultiArray, queue_size=10)
+        self.filtered_points_pub = rospy.Publisher('/cv2_H_points', Float64MultiArray, queue_size=10)
 
         print("Stable Radar Line Detector initialized")
         print(f"Temporal buffer size: {self.temporal_buffer_size}")
