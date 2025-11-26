@@ -255,6 +255,7 @@ class system_control:
                     
             if jump_count >= 2:
                 rospy.loginfo("ob_cross  检测到第二次突变，退出循环")
+                rospy.loginfo(f"ob_cross  等待{delay}秒抬起")
                 rospy.sleep(delay)
                 self.car_state = [2, 2]  # 车辆停车，喷涂机停喷
                 self.running_state = 821
@@ -287,7 +288,6 @@ class system_control:
                 continue
             else:
                 ob_data = self.get_obstacle_status()
-                tcp_pos = self.duco_ob.get_tcp_pose()
                 if self.is_obstacle_detected():
                     
                     if self.ob_status == 0: # 全向避障
@@ -336,7 +336,8 @@ class system_control:
                                 start_time = time.time()
                                 tcp_pos = self.duco_ob.get_tcp_pose()
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] - 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
-                                
+                                rospy.sleep(0.1)
+                                ob_data = self.get_obstacle_status()
                                 if ob_data['left_mid'] and ob_data['left_rear'] and self.car_direction == 0:
                                     self.ob_cross_check("right", pause_time)
 
@@ -377,7 +378,8 @@ class system_control:
                                 start_time = time.time()
                                 tcp_pos = self.duco_ob.get_tcp_pose()
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] + 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
-                                
+                                rospy.sleep(0.1)
+                                ob_data = self.get_obstacle_status()
                                 if ob_data['right_mid'] and ob_data['right_rear'] and self.car_direction == 1:
                                     self.ob_cross_check("left", pause_time)
 
@@ -732,7 +734,10 @@ class system_control:
             self.painting_deg_flange = abs(self.latest_keys[8])
             self.painting_dist = self.latest_keys[9]/1000
             self.car_direction = self.latest_keys[10]
-            self.car_speed = self.latest_keys[14] / 100
+            if self.latest_keys[14] == 0:
+                self.car_speed = 0.05
+            else:
+                self.car_speed = self.latest_keys[14] / 100
 
         # 按位解析
         return KeyInputStruct(
