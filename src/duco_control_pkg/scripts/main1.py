@@ -74,6 +74,7 @@ class DemoApp:
         rlt = self.duco_cobot.enable(True)
         print("enable:", rlt)
         self.duco_cobot.switch_mode(1)
+        self.duco_cobot.set_tool_data("paint", [0,0,0,0,0,0], [10,0,0,0], [0,0,0,0,0,0])
 
     def hearthread_fun(self):
         self._stop_event = threading.Event()

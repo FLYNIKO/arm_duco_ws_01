@@ -20,7 +20,7 @@ class SeparateRadarLineDetector:
     def __init__(self):
         rospy.init_node('separate_radar_line_detector')
         self.debug_mode = DEBUG_MODE
-        self.enable_gui = self.debug_mode and bool(os.environ.get('DISPLAY'))
+        self.enable_gui = bool(os.environ.get('DISPLAY'))
         if self.enable_gui:
             try:
                 cv2.startWindowThread()
@@ -33,7 +33,7 @@ class SeparateRadarLineDetector:
         self.resolution = self.max_range / (self.image_size / 2)
         
         # 圆形处理范围参数
-        self.processing_radius_meters = 1.0  # 处理半径（米），只处理此范围内的数据
+        self.processing_radius_meters = 0.8  # 处理半径（米），只处理此范围内的数据
         self.processing_radius_pixels = int(self.processing_radius_meters / self.resolution)  # 转换为像素
         
         # Enhanced Hough line detection parameters (保持原有准确的参数)
@@ -58,7 +58,7 @@ class SeparateRadarLineDetector:
         
         # Advanced filtering parameters
         self.min_line_length_meters = 0.15
-        self.max_line_length_meters = 8.0
+        self.max_line_length_meters = 0.5
         self.angle_tolerance_deg = 75
         self.density_threshold = 0.6
         

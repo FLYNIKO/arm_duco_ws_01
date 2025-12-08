@@ -55,7 +55,7 @@ class StableRadarLineDetector:
         self.max_line_age = 4          # 增加最大线龄
         
         # Advanced filtering parameters
-        self.min_line_length_meters = 0.25  # 适当提高最小线长要求
+        self.min_line_length_meters = 0.3  # 适当提高最小线长要求
         self.min_line_deg = 90
         self.min_flange_length_meters = 0.06 # 适当提高最小法兰长度
         self.max_line_length_meters = 2.2   # 适当减少最大线长

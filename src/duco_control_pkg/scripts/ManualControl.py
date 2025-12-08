@@ -199,6 +199,7 @@ class system_control:
                 self.running_state = 999
                 self.ob_flag = False
                 self.ob_status = 1
+                self.car_state = [8, 8]
                 self.emergency_stop_flag = True
                 self.ob_sidemotive_flag = False
                 self.autopaint_flag = False
@@ -338,9 +339,10 @@ class system_control:
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] - 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 rospy.sleep(0.1)
                                 ob_data = self.get_obstacle_status()
-                                if ob_data['left_mid'] and ob_data['left_rear'] and self.car_direction == 0:
-                                    self.ob_cross_check("right", pause_time)
+                                
+                                self.ob_cross_check("right", pause_time)
 
+                                '''
                                 elif ob_data['left_mid'] and self.car_direction == 0:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                     self.car_state = [8, 2] # 停车停喷
@@ -365,9 +367,10 @@ class system_control:
                                             self.ob_flag = False
                                             break
                                     self.running_state = 800
+                                '''
                         
                             if (ob_data['right_mid'] or ob_data['right_rear']) and self.car_direction == 1:
-                                pause_time = 0.5 / self.car_speed
+                                pause_time = 0.4 / self.car_speed
                                 self.duco_ob.stop(True)
                                 self.ob_flag = True
                                 ob_data = self.get_obstacle_status()
@@ -380,9 +383,10 @@ class system_control:
                                 self.duco_ob.movel([tcp_pos[0], tcp_pos[1] + 0.1, tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                 rospy.sleep(0.1)
                                 ob_data = self.get_obstacle_status()
-                                if ob_data['right_mid'] and ob_data['right_rear'] and self.car_direction == 1:
-                                    self.ob_cross_check("left", pause_time)
 
+                                self.ob_cross_check("left", pause_time)
+
+                                '''
                                 elif ob_data['right_mid'] and self.car_direction == 1:
                                     self.duco_ob.movel([tcp_pos[0] + 0.3, tcp_pos[1], tcp_pos[2], self.init_pos[3], self.init_pos[4], self.init_pos[5]], self.ob_vel, self.ob_acc, 0, '', '', '', True)
                                     self.car_state = [8, 2] # 停车停喷
@@ -407,6 +411,7 @@ class system_control:
                                             self.ob_flag = False
                                             break
                                     self.running_state = 800
+                                '''
 
                         # elif self.paint_motion == 1 or self.paint_motion == 5:
                         #     if ob_data['center']:
@@ -574,13 +579,17 @@ class system_control:
                 target_line = line
                 break
         
-        if target_line is not None and self.position_flag:
-            # 提取 distance 和 angle_deg
-            self.surface_distance = abs(target_line.start_point.x)
-            self.surface_angle_deg = target_line.angle_deg
-            self.target_dist_in_surface = self.painting_dist - abs(abs(self.paint_top_X) - abs(self.paint_center[0]))
+        if target_line is not None:
+            if self.position_flag:
+                # 提取 distance 和 angle_deg
+                self.surface_distance = abs(target_line.start_point.x)
+                self.surface_angle_deg = target_line.angle_deg
+                self.target_dist_in_surface = self.painting_dist - abs(abs(self.paint_top_X) - abs(self.paint_center[0]))
 
-            # rospy.loginfo(f"找到目标线 (id=999): distance={self.target_distance:.3f}, angle_deg={self.target_angle_deg:.3f}")
+                # rospy.loginfo(f"找到目标线 (id=999): distance={self.target_distance:.3f}, angle_deg={self.target_angle_deg:.3f}")
+            else:
+                self.surface_distance = abs(target_line.start_point.x)
+                self.surface_angle_deg = target_line.angle_deg
         else:
             self.surface_distance = -1
             # rospy.logwarn("未找到 id=999 的目标线")
@@ -838,11 +847,11 @@ class system_control:
         deg_AB = -compute_angle(ABx, ABy)
         deg_AC = -compute_angle(ACx, ACy)
         if deg_AB > deg_AC:
-            deg_1 = max(-44.0, min(45.0, deg_AB))
-            deg_2 = max(-45.0, min(44.0, deg_AC))
+            deg_1 = max(-39.0, min(40.0, deg_AB))
+            deg_2 = max(-40.0, min(39.0, deg_AC))
         else:
-            deg_1 = max(-44.0, min(45.0, deg_AC))
-            deg_2 = max(-45.0, min(44.0, deg_AB))
+            deg_1 = max(-39.0, min(40.0, deg_AC))
+            deg_2 = max(-40.0, min(39.0, deg_AB))
 
         return [deg_1, deg_2]
 
@@ -918,11 +927,17 @@ class system_control:
 
         # 喷涂上表面
         # (self.point_on_circle(web_top_x, web_top_z, self.surface_painting_dist, self.painting_deg_surface)[0])
+        #self.paint_top = [
+        #    self.paint_center[0],
+        #    tcp_pos[1],
+        #    (self.point_on_circle(web_top_x, web_top_z, self.surface_painting_dist, self.painting_deg_surface)[1]),
+        #    tcp_pos[3], tcp_pos[4], tcp_pos[5]] 
+        '''重庆小梁专用腹板位置'''
         self.paint_top = [
             self.paint_center[0],
             tcp_pos[1],
-            (self.point_on_circle(web_top_x, web_top_z, self.surface_painting_dist, self.painting_deg_surface)[1]),
-            tcp_pos[3], tcp_pos[4], tcp_pos[5]] 
+            self.paint_center[2] - 0.1,
+            tcp_pos[3], tcp_pos[4], tcp_pos[5]]
 
         # 喷涂上翼面
         # (self.point_on_circle(web_top_x, web_top_z, self.flange_painting_dist, -self.painting_deg_flange)[0])
@@ -935,9 +950,9 @@ class system_control:
         # 喷涂下表面
         # (self.point_on_circle(web_bottom_x, web_bottom_z, self.surface_painting_dist, -self.painting_deg_surface)[0])
         self.paint_bottom = [
-            self.paint_center[0],
+            self.paint_center[0] - 0.05,
             tcp_pos[1],
-            (self.point_on_circle(web_bottom_x, web_bottom_z, self.surface_painting_dist, -self.painting_deg_surface)[1]),
+            (self.point_on_circle(web_bottom_x, web_bottom_z, self.surface_painting_dist, -self.painting_deg_surface)[1]) - 0.1,
             tcp_pos[3], tcp_pos[4], tcp_pos[5]]
 
         # 喷涂下翼面
@@ -947,22 +962,25 @@ class system_control:
             tcp_pos[1],
             (self.point_on_circle(web_bottom_x, web_bottom_z, self.flange_painting_dist, self.painting_deg_flange)[1]),
             tcp_pos[3], tcp_pos[4], tcp_pos[5]] 
+        
         self.paint_top_X = self.point_on_circle(web_bottom_x, web_bottom_z, self.flange_painting_dist, self.painting_deg_flange)[0]
         self.target_dist_in_flange = self.painting_dist - abs(abs(self.paint_top_X) - abs(self.paint_center[0]))
         self.target_dist_in_web = self.painting_dist
 
         #计算喷涂摆动角度
         #上表面
-        self.spray_swinging_top = self.compute_spray_swinging_angle([self.paint_top[0], self.paint_top[2]], flange_top_front, flange_top_back)
+        '''重庆小梁专用腹板'''
+        # self.spray_swinging_top = self.compute_spray_swinging_angle([self.paint_top[0], self.paint_top[2]], [flange_top_front[0], flange_top_front[1] - 0.05], [flange_bottom_front[0], flange_bottom_front[1] + 0.05])
+        self.spray_swinging_top = self.compute_spray_swinging_angle([self.paint_top[0], self.paint_top[2]], [web_top_x, web_top_z + 0.03], [web_bottom_x, web_bottom_z - 0.03])
         #下表面
-        self.spray_swinging_bottom = self.compute_spray_swinging_angle([self.paint_bottom[0], self.paint_bottom[2]], flange_bottom_front, flange_bottom_back)
+        self.spray_swinging_bottom = self.compute_spray_swinging_angle([self.paint_bottom[0], self.paint_bottom[2]], [flange_bottom_front[0] - 0.05, flange_bottom_front[1]], [flange_bottom_back[0] + 0.05, flange_bottom_back[1]])
         #下翼板
         self.spray_swinging_high = self.compute_spray_swinging_angle([self.paint_high[0], self.paint_high[2]], flange_bottom_front, [web_bottom_x, web_bottom_z])
         #上翼板
         self.spray_swinging_low = self.compute_spray_swinging_angle([self.paint_low[0], self.paint_low[2]], flange_top_front, [web_top_x, web_top_z])
         #中心点
-        self.spray_swinging_center = self.compute_spray_swinging_angle([self.paint_center[0], self.paint_center[2]], flange_top_front, flange_bottom_front)
-
+        self.spray_swinging_center = self.compute_spray_swinging_angle([self.paint_center[0], self.paint_center[2]], [flange_top_front[0], flange_top_front[1] - 0.05], [flange_bottom_front[0], flange_bottom_front[1] + 0.05])
+        
         self.spray_swinging = self.spray_swinging_top + self.spray_swinging_low + self.spray_swinging_center + self.spray_swinging_high + self.spray_swinging_bottom
         rospy.loginfo("------ |-| 已找到5个喷涂位姿，选择位置开始喷涂！--------\n")
         rospy.loginfo("   ↓       喷涂上表面位姿： %s, 喷涂摆动角度： %s" % (self.paint_top, self.spray_swinging_top))
@@ -1114,8 +1132,8 @@ class system_control:
                     rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
 
                 # 喷涂上下表面
-                elif self.paint_motion == 1 or self.paint_motion == 5:
-                    target_dist = self.painting_dist
+                elif self.paint_motion == 5:
+                    target_dist = self.painting_dist - 0.05
                     now_dist = self.surface_distance
                     now_angle = self.surface_angle_deg
                     if now_angle > 95 or now_angle < 85:
@@ -1128,7 +1146,7 @@ class system_control:
                     rospy.loginfo(f"v2: {v2}\ntarget_dist: {target_dist}, \ndistance_now: {now_dist}")
                 
                 # 喷涂中腹板
-                elif self.paint_motion == 3:
+                elif self.paint_motion == 3 or self.paint_motion == 1:
                     target_dist = self.target_dist_in_web
                     if self.car_direction == 0:
                         now_dist = self.get_directional_distance("left")
@@ -1148,9 +1166,7 @@ class system_control:
                     elif self.car_direction == 1:
                         now_dist = self.get_directional_distance("right")
 
-                    if now_dist != -1 or now_dist <= target_dist * 2:
-                        pass
-                    elif self.surface_distance != -1:
+                    if now_dist == -1 or now_dist >= target_dist * 2 or now_dist < 0.15:
                         now_dist = self.surface_distance
                     else:
                         now_dist = -1
