@@ -289,6 +289,7 @@ class system_control:
                 continue
             else:
                 ob_data = self.get_obstacle_status()
+                key_input = self.get_key_input()
                 if self.is_obstacle_detected():
                     
                     if self.ob_status == 0: # 全向避障
@@ -323,6 +324,7 @@ class system_control:
 
 
                     elif self.ob_status == 2: # 自动sync 避障逻辑
+                        key_input = self.get_key_input()
                         if self.paint_motion == 1 or self.paint_motion == 5 or self.paint_motion == 2 or self.paint_motion == 4 or self.paint_motion == 3 or self.paint_motion == 6:
 
                             if (ob_data['left_mid'] or ob_data['left_rear']) and self.car_direction == 0:
