@@ -1,0 +1,7 @@
+<launch>
+
+  <include file="$(find rplidar_ros)/launch/rplidar_left.launch"/>
+  <include file="$(find rplidar_ros)/launch/rplidar_mid.launch"/>
+  <include file="$(find rplidar_ros)/launch/rplidar_right.launch"/>
+
+</launch>

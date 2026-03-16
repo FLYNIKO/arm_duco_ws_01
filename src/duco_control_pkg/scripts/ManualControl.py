@@ -319,7 +319,8 @@ class system_control:
                         obstacle_keys = ['left_front', 'left_mid', 'left_rear', 'right_front', 'right_mid', 'right_rear', 'center', 'up', 'down']
                         for key in obstacle_keys:
                             if ob_data.get(key):
-                                rospy.logwarn(f"| 检测到{key}障碍物，注意操作！ |")
+                                # rospy.logwarn(f"| 检测到{key}障碍物，注意操作！ |")
+                                pass
                         rospy.sleep(1)
 
 
@@ -725,7 +726,10 @@ class system_control:
         Returns:
             list: 包含车辆状态信息的列表
         """
-        distances = [self.get_distance("left", "front"), self.get_distance("right", "front"), self.get_distance("left", "up"), self.get_distance("left", "down")]
+        distances = [self.get_distance("up", "right"), 
+                    self.get_distance("right", "front"), 
+                    self.get_distance("left", "up"), 
+                    self.get_distance("left", "down")]
         return self.car_state, self.running_state, distances, self.spray_swinging
         
         # 读取/topic中的按键输入
